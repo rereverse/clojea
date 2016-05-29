@@ -1,6 +1,6 @@
 # clojurea
 
-Evolutionary algorightm in Clojure a bit differently
+Evolutionary Algorithms in Clojure a bit differently
 
 ## Usage
 
