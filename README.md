@@ -1,6 +1,6 @@
 # clojurea
 
-A Clojure library designed to ... well, that part is up to you.
+Evolutionary algorightm in Clojure a bit differently
 
 ## Usage
 
