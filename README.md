@@ -1,4 +1,4 @@
-# clojurea
+# clojea
 
 Evolutionary Algorithms in Clojure a bit differently
 
