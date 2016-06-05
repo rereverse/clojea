@@ -61,10 +61,10 @@
 (defn evolve []
   (let [pop-size 20
         elitism 2
-        crossover-p 0.5
+        crossover-p 1
         mutation-p 0.01
         selection-p (cumul-probs pop-size)
-        alleles (repeat 100 100)
+        alleles (repeat 100 2)
         ff (partial apply +)
         max-iter 1000
         accept-sol (ff alleles)
@@ -98,4 +98,6 @@
 (comment
   (measure evolve)                                          ;; no elitism [1000.0 9657.06]
   (measure evolve)                                          ;; w/ elitism [1000.0 9774.24]
+  (measure evolve)                                          ;; w/ 1.0 COP [1000.0 9787.65]
+  (measure evolve)                                          ;; [112.1 200.0]
   )
