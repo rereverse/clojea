@@ -55,11 +55,15 @@
     (fn [g a] (if (tlmt-rand-boolean mutation-p) (rand-gene a) g))
     chrom alleles))
 
+(defn pnl [msg]
+  (fn [x] (println msg x) x))
+
 (defn evolve []
   (let [pop-size 20
+        elitism 2
         crossover-p 0.5
         mutation-p 0.01
-        selection-p (linear-probs pop-size)
+        selection-p (cumul-probs pop-size)
         alleles (repeat 100 100)
         ff (partial apply +)
         max-iter 1000
@@ -69,12 +73,15 @@
       (if (and (not= max-iter i) (> accept-sol (:fitness (first pop))))
         (recur
           (eval
-            (->> (repeatedly (partial select-two pop selection-p))
-                 (map #(map :chrom %))
-                 (mapcat (fn [[x y :as xy]] (if (tlmt-rand-boolean crossover-p)
-                                              (crossover x y (rand-pivot (count alleles))) xy)))
-                 (map #(mutate % alleles mutation-p))
-                 (take pop-size)))
+            (concat
+              (->> (take elitism pop)
+                   (map :chrom))
+              (->> (repeatedly (partial select-two pop selection-p))
+                   (map #(map :chrom %))
+                   (mapcat (fn [[x y :as xy]] (if (tlmt-rand-boolean crossover-p)
+                                                (crossover x y (rand-pivot (count alleles))) xy)))
+                   (map #(mutate % alleles mutation-p))
+                   (take (- pop-size elitism)))))
           (inc i))
         [i (:fitness (first pop))]))))
 
@@ -89,5 +96,6 @@
                 [0 0] (repeatedly experiments f))))
 
 (comment
-  (measure evolve)                                          ;; [1000.0 8773.83]
+  (measure evolve)                                          ;; no elitism [1000.0 9657.06]
+  (measure evolve)                                          ;; w/ elitism [1000.0 9774.24]
   )
