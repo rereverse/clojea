@@ -87,3 +87,7 @@
                   (flush)
                   (mapv #(+ %1 %2) a x))
                 [0 0] (repeatedly experiments f))))
+
+(comment
+  (measure evolve)                                          ;; [1000.0 8773.83]
+  )
