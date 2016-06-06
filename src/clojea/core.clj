@@ -20,7 +20,7 @@
     (map #(/ % sum) coll)))
 
 (defn- cumul-probs [n]
-  (map #(/ 1 %) (take n (iterate inc 1))))
+  (map #(/ 1 %) (range 1 (inc n))))
 
 (defn- unite [pop-size & pops]
   (loop [ps (vec pops) r []]
@@ -32,15 +32,13 @@
         (recur (update ps i rest) (conj r m)))
       r)))
 
-(defn- select [coll probs]
+(defn- roulette-wheel [coll probs]
   (let [coll-probs (map vector coll probs)
         target (tlmt-rand)]
-    (reduce
-      (fn [S [x p]]
-        (let [s (+ S p)]
-          (if (> s target) (reduced x) s)))
-      0
-      coll-probs)))
+    (reduce (fn [S [x p]]
+              (let [s (+ S p)]
+                (if (> s target) (reduced x) s)))
+            0 coll-probs)))
 
 (defn- rand-pivot [n]
   (inc (tlmt-rand (dec n))))
@@ -50,31 +48,49 @@
    (vec (concat (take pivot y) (drop pivot x)))])
 
 (defn- mutate [chrom alleles mutation-p]
-  (mapv (fn [g a] (if (tlmt-rand-boolean mutation-p)
-                    (->> (repeatedly #(rand-gene a)) (filter #(not= g %)) (first))
-                    g))
+  (mapv (fn [g a]
+          (if (tlmt-rand-boolean mutation-p)
+            (->> (repeatedly #(rand-gene a))
+                 (filter #(not= g %))
+                 (first))
+            g))
         chrom alleles))
 
+(def ^:private default-conf
+  {:alleles     []
+   :pop-size    20
+   :ff          identity
+   :max-iter    -1
+   :acceptable? (fn [_] false)
+   })
 
-(defn evolve [mutation-p]
-  (let [pop-size 20
+(defn evolve
+  ":pop-size (20)
+  :alleles ([])
+  :ff (identity)
+  :max-iter    -1
+  :acceptable? (fn [best-fitness] false)"
+  [conf]
+  (let [conf (merge default-conf conf)
+        pop-size (:pop-size conf)
+        alleles (:alleles conf)
+        ff (:ff conf)
+        acceptable? (:acceptable? conf)
+        max-iter (:max-iter conf)
         selection-ps (normalize (cumul-probs pop-size))
-        alleles (repeat 100 100)
-        ff (partial apply +)
-        max-iter 1000
-        accept-sol (* 0.95 (ff alleles))
+        mutation-p 0.01
         eval (partial eval-chroms ff)]
     (loop [pop (eval (rand-chroms pop-size alleles)) i 0]
-      (if (and (> max-iter i) (> accept-sol (:fness (first pop))))
+      (if (and (> max-iter i) (not (acceptable? (:fness (first pop)))))
         (recur
           (unite pop-size
                  pop
                  (eval
-                   (->> (repeatedly (partial select pop selection-ps))
+                   (->> (repeatedly (partial roulette-wheel pop selection-ps))
                         (map :chrom)
                         (partition 2)
                         (mapcat #(crossover (first %) (second %) (rand-pivot (count alleles))))
                         (map #(mutate % alleles mutation-p))
                         (take pop-size))))
           (inc i))
-        [i (:fness (first pop))]))))
+        [i pop]))))
