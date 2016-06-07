@@ -1,5 +1,5 @@
 (ns clojea.random.mtrandom
-  (:import (clojea.random MersenneTwisterFast)))
+  (:import [clojea.random MersenneTwisterFast]))
 
 (def ^:private thread-local-mersenne-twister
   (proxy [ThreadLocal] []
