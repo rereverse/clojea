@@ -2,9 +2,9 @@
   (:use [clojea.random.mtrandom]))
 
 (defn- rand-gene [max]
-  (inc (tlmt-rand max)))
+  (tlmt-rand max))
 
-(defn- rand-chrom [alleles]
+(defn rand-chrom [alleles]
   (mapv rand-gene alleles))
 
 (defn- rand-chroms [n alleles]
@@ -12,7 +12,7 @@
 
 (defn- eval-chroms [ff chroms]
   (->> chroms
-       (map #(hash-map :chrom % :fness (ff %)))
+       (pmap #(hash-map :chrom % :fness (ff %)))
        (sort-by :fness >)))
 
 (defn- normalize [coll]
@@ -69,7 +69,9 @@
   :alleles ([])
   :ff (identity)
   :max-iter    -1
-  :acceptable? (fn [best-fitness] false)"
+  :acceptable? (fn [best-fitness] false)
+
+  Returns [iter (first pop)]"
   [conf]
   (let [conf (merge default-conf conf)
         pop-size (:pop-size conf)
@@ -83,14 +85,17 @@
     (loop [pop (eval (rand-chroms pop-size alleles)) i 0]
       (if (and (> max-iter i) (not (acceptable? (:fness (first pop)))))
         (recur
-          (unite pop-size
-                 pop
-                 (eval
-                   (->> (repeatedly (partial roulette-wheel pop selection-ps))
-                        (map :chrom)
-                        (partition 2)
-                        (mapcat #(crossover (first %) (second %) (rand-pivot (count alleles))))
-                        (map #(mutate % alleles mutation-p))
-                        (take pop-size))))
+          (apply
+            (partial unite pop-size)
+            (map
+              (partial take (/ pop-size 2))
+              [pop
+               (eval
+                 (->> (repeatedly (partial roulette-wheel pop selection-ps))
+                      (map :chrom)
+                      (partition 2)
+                      (mapcat #(crossover (first %) (second %) (rand-pivot (count alleles))))
+                      (map #(mutate % alleles mutation-p))
+                      (take pop-size)))]))
           (inc i))
-        [i pop]))))
+        [i (first pop)]))))
